@@ -122,16 +122,17 @@ while (simTime < workingTime || patientCounter > 0)
 end
 
 % ---------------- vystup 3
+
 %celkovy pocet ludi v systeme
 totalPatients = 0;
 for i = 1:length(numberOfPatients)
     totalPatients = totalPatients + numberOfPatients(i);
 end
 
-numberOfPatients(1) = totalPatients;
+averageWaitingTimes = zeros(C, 1);
+
 
 %priemerna cakacia doba pacienta pacientov
-averageWaitingTimes = zeros(C, 1);
 for i = 1:length(averageWaitingTimes)
     averageWaitingTimes(i) = patientWaitingTimes(i) / numberOfPatients(i);
 end
