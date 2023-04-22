@@ -50,7 +50,6 @@ while (simTime < workingTime || patientCounter > 0)
             if (cal(examinationIndex, 1) == 0)
                 cal(examinationIndex, 1) = 1;
                 cal(examinationIndex, 2) = simTime + getExaminationTime(examinationIndex);
-                counter = counter + 1;
                 doctorsWorkload(examinationIndex) = doctorsWorkload(examinationIndex) + getExaminationTime(examinationIndex);
             else
                 %ak ambulancia volna nie je, zaradime pacienta do
