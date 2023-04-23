@@ -1,10 +1,9 @@
 clear;
 clc;
-numberOfReplications = 10;
+numberOfReplications = 100;
 C = 4;   %pocet serverov
-sumsOfDepartmentPercentage = zeros(C, 1);
+sumsOfDepartmentDoctorsWorkloadPercentage = zeros(C, 1);
 sumsOfDepartmentAverageWaitingTimes = zeros(C, 1);
-
 
 for r = 1:numberOfReplications
     centralQueue = [];                  %pociatocny rad po prichode do kliniky
@@ -30,10 +29,11 @@ for r = 1:numberOfReplications
     numberOfPatients = zeros(C, 1);
     doctorsWorkload = zeros(C, 1);
     
-    for i = 1 : C + 1
+    for i = 1:C + 1
         cal(i, 1) = 0;
         cal(i, 2) = intmax;
     end
+
     cal(C + 1, 2) = getArrivalTime(2);  %prichod prveho pacienta
     patientCounter = 1;                 %pocitame, kolko pacientov prislo do systemu
 
@@ -52,8 +52,9 @@ for r = 1:numberOfReplications
                 %ak je dana ambulancia volna, pacienta vysetrime
                 if (cal(examinationIndex, 1) == 0)
                     cal(examinationIndex, 1) = 1;
-                    cal(examinationIndex, 2) = simTime + getExaminationTime(examinationIndex);
-                    doctorsWorkload(examinationIndex) = doctorsWorkload(examinationIndex) + getExaminationTime(examinationIndex);
+                    examinationTime = getExaminationTime(examinationIndex);
+                    cal(examinationIndex, 2) = simTime + examinationTime;
+                    doctorsWorkload(examinationIndex) = doctorsWorkload(examinationIndex) + examinationTime;
                 else
                     %ak ambulancia volna nie je, zaradime pacienta do
                     %prislusneho radu
@@ -110,8 +111,9 @@ for r = 1:numberOfReplications
             %ak je prvy pracovnik volny, spracovavame pacienta na prvom serveri
             if (cal(1, 1) == 0)
                 cal(1, 1) = 1;
-                cal(1, 2) = simTime + getExamination(1, 4);
-                doctorsWorkload(1) = doctorsWorkload(1) + getExamination(1, 4);
+                examinationTime = getExamination(1, 4);
+                cal(1, 2) = simTime + examinationTime;
+                doctorsWorkload(1) = doctorsWorkload(1) + examinationTime;
            
             else
                 %prvy pracovnik nie je volny, posleme pacienta do radu
@@ -168,16 +170,16 @@ for r = 1:numberOfReplications
     end
 
     for i = 1:C
-        sumsOfDepartmentPercentage(i) = sumsOfDepartmentPercentage(i) + doctorsWorkloadPercentage(i);
+        sumsOfDepartmentDoctorsWorkloadPercentage(i) = sumsOfDepartmentDoctorsWorkloadPercentage(i) + doctorsWorkloadPercentage(i);
         sumsOfDepartmentAverageWaitingTimes(i) = sumsOfDepartmentAverageWaitingTimes(i) + averageWaitingTimes(i);
     end
 end
 
-avgDepartmentsPercentage = zeros(C, 1);
+avgDepartmentDoctorsWorkloadPercentage = zeros(C, 1);
 avgDepartmentWaitingTimes = zeros(C, 1);
 
 for i = 1:C
-    avgDepartmentsPercentage(i) = sumsOfDepartmentPercentage(i) / numberOfReplications;
+    avgDepartmentDoctorsWorkloadPercentage(i) = sumsOfDepartmentDoctorsWorkloadPercentage(i) / numberOfReplications;
     avgDepartmentWaitingTimes(i) = sumsOfDepartmentAverageWaitingTimes(i) / numberOfReplications;
 end
 
@@ -213,8 +215,9 @@ function [newQueue, newCal, waitingTime, newDoctorsWorkload] = processPatientFro
      if (length(queue) > 0)
          waitingTime = simTime - queue(1);
          cal(index,1) = 1;
-         cal(index,2) = simTime + getExaminationTime(index);
-         doctorsWorkload(index) = doctorsWorkload(index) + getExaminationTime(index);
+         examinationTime = getExaminationTime(index);
+         cal(index,2) = simTime + examinationTime;
+         doctorsWorkload(index) = doctorsWorkload(index) + examinationTime;
          queue(1) = [];
       else
          %ak je rad prazdny, uvolnime server
