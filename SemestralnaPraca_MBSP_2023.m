@@ -59,23 +59,20 @@ for r = 1:numberOfReplications
                     %ak ambulancia volna nie je, zaradime pacienta do
                     %prislusneho radu
                     if (examinationIndex == 2)
-                        departmentQueueLength = length(dentistQueue);
-                        dentistQueue(departmentQueueLength + 1) = simTime;
-                        currentCountDentist(length(currentCountDentist) + 1) = departmentQueueLength;
+                        dentistQueue(length(dentistQueue) + 1) = simTime;
+                        currentCountDentist(length(currentCountDentist) + 1) = length(dentistQueue);
                         currentTimeDentist(length(currentTimeDentist) + 1) = simTime;
                     elseif (examinationIndex == 3)
-                        departmentQueueLength = length(orthopedistQueue);
-                        orthopedistQueue(departmentQueueLength + 1) = simTime;
-                        currentCountOrthopedist(length(currentCountOrthopedist) + 1) = departmentQueueLength;
+                        orthopedistQueue(length(orthopedistQueue) + 1) = simTime;
+                        currentCountOrthopedist(length(currentCountOrthopedist) + 1) = length(orthopedistQueue);
                         currentTimeOrthopedist(length(currentTimeOrthopedist) + 1) = simTime;
                     else
                         if (rand() < 0.2)
                             % urgentny pacient sa predbehne
                             surgeonQueue = [simTime surgeonQueue];
                         else
-                            departmentQueueLength = length(surgeonQueue);
-                            surgeonQueue(departmentQueueLength + 1) = simTime;
-                            currentCountSurgeon(length(currentCountSurgeon) + 1) = departmentQueueLength;
+                            surgeonQueue(length(surgeonQueue) + 1) = simTime;
+                            currentCountSurgeon(length(currentCountSurgeon) + 1) = length(surgeonQueue);
                             currentTimeSurgeon(length(currentTimeSurgeon) + 1) = simTime;
                         end
                     end
@@ -117,9 +114,8 @@ for r = 1:numberOfReplications
            
             else
                 %prvy pracovnik nie je volny, posleme pacienta do radu
-                departmentQueueLength = length(centralQueue);
-                centralQueue(departmentQueueLength + 1) = simTime;
-                currentCountCentral(length(currentCountCentral) + 1) = departmentQueueLength;
+                centralQueue(length(centralQueue) + 1) = simTime;
+                currentCountCentral(length(currentCountCentral) + 1) = length(centralQueue);
                 currentTimeCentral(length(currentTimeCentral) + 1) = simTime;
             end
     
