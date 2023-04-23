@@ -1,158 +1,213 @@
 clear;
 clc;
-centralQueue = [];                  %pociatocny rad po prichode do kliniky
-dentistQueue = [];                  %pociatocny rad po prichode k zubarovi
-orthopedicQueue = [];               %pociatocny rad po prichode k ortopedovi
-chirurgicQueue = [];                %pociatocny rad po prichode k chirurgovi
+numberOfReplications = 100;
+C = 4;   %pocet serverov
+sumsOfDepartmentDoctorsWorkloadPercentage = zeros(C, 1);
+sumsOfDepartmentAverageWaitingTimes = zeros(C, 1);
 
-simTime = 0;                        %simulacny cas
-workingTime = 600;                   %denny pracovny cas v minutach
+for r = 1:numberOfReplications
+    centralQueue = [];                  %pociatocny rad po prichode do kliniky
+    dentistQueue = [];                  %pociatocny rad po prichode k zubarovi
+    orthopedistQueue = [];              %pociatocny rad po prichode k ortopedovi
+    surgeonQueue = [];                  %pociatocny rad po prichode k chirurgovi
+    
+    currentCountCentral = [];
+    currentCountDentist = [];
+    currentCountOrthopedist = [];
+    currentCountSurgeon = [];
 
-C = 4;                              %pocet serverov
-cal = zeros(C + 1, 2);              %inicializacia kalendara
+    currentTimeCentral = [];
+    currentTimeDentist = [];
+    currentTimeOrthopedist = [];
+    currentTimeSurgeon = [];
 
-patientWaitingTimes = zeros(C, 1);
-numberOfPatients = zeros(C, 1);
-doctorsWorkload = zeros(C, 1);
+    simTime = 0;                        %simulacny cas
+    workingTime = 600;                  %denny pracovny cas v minutach
+    cal = zeros(C + 1, 2);              %inicializacia kalendara
+    
+    patientWaitingTimes = zeros(C, 1);
+    numberOfPatients = zeros(C, 1);
+    doctorsWorkload = zeros(C, 1);
+    
+    for i = 1:C + 1
+        cal(i, 1) = 0;
+        cal(i, 2) = intmax;
+    end
 
-for i=1:C+1
-    cal(i,1) = 0;
-    cal(i,2) = intmax;
-end
+    cal(C + 1, 2) = getArrivalTime(2);  %prichod prveho pacienta
+    patientCounter = 1;                 %pocitame, kolko pacientov prislo do systemu
 
-cal(C + 1, 2) = getArrivalTime(2);  %prichod prveho pacienta
-patientCounter = 1;                 %pocitame, kolko pacientov prislo do systemu
-urgentPatient = 0;
-isUrgentPatient = false;
-counter = 0;
-
-while (simTime < workingTime || patientCounter > 0)
-    %vyberame najblizsie udalost z kalendara
-    [minTime, index] = getMinTime(cal);
-    simTime = minTime;
-
-    %odchod
-    if (index < C + 1)
-        if (index == 1)
-            %odchod recepcia,, urcime do, ktorej ambulancie pacient smeruje
-            examinationIndex = getExaminationIndex();
-
-            %v tomto poli si ukladam celkovy pocet pacientov podla indexov
-            %(1 - zubar, 2 - ortoped, 3 - chirurg
-            numberOfPatients(examinationIndex) = numberOfPatients(examinationIndex) + 1;
-
-            if (examinationIndex == 4 && rand() < 0.2)
-                isUrgentPatient = true;
-                urgentPatient = urgentPatient + 1;
-            end
-
-            %ak je dana ambulancia volna, pacienta vysetrime
-            if (cal(examinationIndex, 1) == 0)
-                cal(examinationIndex, 1) = 1;
-                cal(examinationIndex, 2) = simTime + getExaminationTime(examinationIndex);
-                doctorsWorkload(examinationIndex) = doctorsWorkload(examinationIndex) + getExaminationTime(examinationIndex);
-            else
-                %ak ambulancia volna nie je, zaradime pacienta do
-                %prislusneho radu
-                if (examinationIndex == 2)
-                    actLenght = length(dentistQueue);
-                    dentistQueue(actLenght+1) = simTime;
-                elseif (examinationIndex == 3)
-                    actLenght = length(orthopedicQueue);
-                    orthopedicQueue(actLenght+1) = simTime;
+    while (simTime < workingTime || patientCounter > 0)
+        %vyberame najblizsie udalost z kalendara
+        [minTime, index] = getMinTime(cal);
+        simTime = minTime;
+    
+        %odchod
+        if (index < C + 1)
+            if (index == 1)
+                %odchod recepcia, urcime do, ktorej ambulancie pacient smeruje
+                examinationIndex = getExaminationIndex();
+    
+                numberOfPatients(examinationIndex) = numberOfPatients(examinationIndex) + 1; 
+                %ak je dana ambulancia volna, pacienta vysetrime
+                if (cal(examinationIndex, 1) == 0)
+                    cal(examinationIndex, 1) = 1;
+                    examinationTime = getExaminationTime(examinationIndex);
+                    cal(examinationIndex, 2) = simTime + examinationTime;
+                    doctorsWorkload(examinationIndex) = doctorsWorkload(examinationIndex) + examinationTime;
                 else
-                    if (isUrgentPatient)
-                        % urgentny pacient sa predbehne
-                        chirurgicQueue = [simTime chirurgicQueue];
-                        isUrgentPatient = false;
+                    %ak ambulancia volna nie je, zaradime pacienta do
+                    %prislusneho radu
+                    if (examinationIndex == 2)
+                        departmentQueueLength = length(dentistQueue);
+                        dentistQueue(departmentQueueLength + 1) = simTime;
+                        currentCountDentist(length(currentCountDentist) + 1) = departmentQueueLength;
+                        currentTimeDentist(length(currentTimeDentist) + 1) = simTime;
+                    elseif (examinationIndex == 3)
+                        departmentQueueLength = length(orthopedistQueue);
+                        orthopedistQueue(departmentQueueLength + 1) = simTime;
+                        currentCountOrthopedist(length(currentCountOrthopedist) + 1) = departmentQueueLength;
+                        currentTimeOrthopedist(length(currentTimeOrthopedist) + 1) = simTime;
                     else
-                        actLenght = length(chirurgicQueue);
-                        chirurgicQueue(actLenght+1) = simTime;
+                        if (rand() < 0.2)
+                            % urgentny pacient sa predbehne
+                            surgeonQueue = [simTime surgeonQueue];
+                        else
+                            departmentQueueLength = length(surgeonQueue);
+                            surgeonQueue(departmentQueueLength + 1) = simTime;
+                            currentCountSurgeon(length(currentCountSurgeon) + 1) = departmentQueueLength;
+                            currentTimeSurgeon(length(currentTimeSurgeon) + 1) = simTime;
+                        end
                     end
                 end
+    
+                %ak caka niekto v rade pri prvom lekarovi, spracujeme ho
+                [centralQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(centralQueue, cal, simTime, index, doctorsWorkload);
+                currentCountCentral(length(currentCountCentral) + 1) = length(centralQueue);
+                currentTimeCentral(length(currentTimeCentral) + 1) = simTime;
+            elseif (index == 2)
+                %odchod od zubara
+                [dentistQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(dentistQueue, cal, simTime, index, doctorsWorkload);
+                patientCounter = patientCounter - 1;
+                currentCountDentist(length(currentCountDentist) + 1) = length(dentistQueue);
+                currentTimeDentist(length(currentTimeDentist) + 1) = simTime;
+            elseif (index == 3)
+                %odchod od ortpeda
+                [orthopedistQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(orthopedistQueue, cal, simTime, index, doctorsWorkload);
+                patientCounter = patientCounter - 1;
+                currentCountOrthopedist(length(currentCountOrthopedist) + 1) = length(orthopedistQueue);
+                currentTimeOrthopedist(length(currentTimeOrthopedist) + 1) = simTime;
+            else 
+                %odchod chirurga
+                [surgeonQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(surgeonQueue, cal, simTime, index, doctorsWorkload);
+                patientCounter = patientCounter - 1;
+                currentCountSurgeon(length(currentCountSurgeon) + 1) = length(surgeonQueue);
+                currentTimeSurgeon(length(currentTimeSurgeon) + 1) = simTime;
             end
-
-            %ak caka niekto v rade pri prvom lekarovi, spracujeme ho
-            [centralQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(centralQueue, cal, simTime, index, doctorsWorkload);
-
-        elseif (index == 2)
-            %odchod od zubara
-            [dentistQueue,cal, waitingTime, doctorsWorkload] = processPatientFromQueue(dentistQueue, cal, simTime, index, doctorsWorkload);
-            patientCounter = patientCounter - 1;
-        elseif (index == 3)
-            %odchod od ortpeda
-            [orthopedicQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(orthopedicQueue, cal, simTime, index, doctorsWorkload);
-            patientCounter = patientCounter - 1;
-        else 
-            %odchod chirurga
-            [chirurgicQueue, cal, waitingTime, doctorsWorkload] = processPatientFromQueue(chirurgicQueue, cal, simTime, index, doctorsWorkload);
-            patientCounter = patientCounter - 1;
-        end
-        patientWaitingTimes(index) = patientWaitingTimes(index) + waitingTime;
-    %prichod
-    else
-
-        %ak je prvy pracovnik volny, spracovavame pacienta na prvom serveri
-        if (cal(1, 1) == 0)
-            cal(1,1) = 1;
-            cal(1, 2) = simTime + getExamination(1,4);
-            doctorsWorkload(1) = doctorsWorkload(1) + getExamination(1,4);
-       
+            patientWaitingTimes(index) = patientWaitingTimes(index) + waitingTime;
+        %prichod
         else
-            %prvy pracovnik nie je volny, posleme pacienta do radu
-            actLength = length(centralQueue);
-            centralQueue(actLength+1) = simTime;
+    
+            %ak je prvy pracovnik volny, spracovavame pacienta na prvom serveri
+            if (cal(1, 1) == 0)
+                cal(1, 1) = 1;
+                examinationTime = getExamination(1, 4);
+                cal(1, 2) = simTime + examinationTime;
+                doctorsWorkload(1) = doctorsWorkload(1) + examinationTime;
+           
+            else
+                %prvy pracovnik nie je volny, posleme pacienta do radu
+                departmentQueueLength = length(centralQueue);
+                centralQueue(departmentQueueLength + 1) = simTime;
+                currentCountCentral(length(currentCountCentral) + 1) = departmentQueueLength;
+                currentTimeCentral(length(currentTimeCentral) + 1) = simTime;
+            end
+    
+            %s prichodom vygenerujeme noveho pacienta
+            if (simTime <= 60)
+                arrivalTime = getArrivalTime(2) + simTime;
+            elseif(simTime > 60 && simTime <= 300)
+                arrivalTime = getArrivalTime(5) + simTime;
+            elseif(simTime > 300 && simTime <= 420)
+                arrivalTime = getArrivalTime(3) + simTime;
+            else
+                arrivalTime = getArrivalTime(9) + simTime;
+            end      
+    
+            %ak je po pracovnej dobe, tak novy prichod pacienta neplanujem
+            if (arrivalTime > workingTime)
+                cal(C + 1, 2) = intmax;
+            else
+                cal(C + 1, 2) = arrivalTime;
+                patientCounter = patientCounter + 1;
+            end
         end
-
-        %s prichodom vygenerujeme noveho pacienta
-        if (simTime <= 60)
-            arrivalTime = getArrivalTime(2) + simTime;
-        elseif(simTime > 60 && simTime <= 300)
-            arrivalTime = getArrivalTime(5) + simTime;
-        elseif(simTime > 300 && simTime <= 420)
-            arrivalTime = getArrivalTime(3) + simTime;
-        else
-            arrivalTime = getArrivalTime(9) + simTime;
-        end      
-
-        %ak je po pracovnej dobe, tak novy prichod pacienta neplanujem
-        if (arrivalTime > workingTime)
-            cal(C + 1, 2) = intmax;
-        else
-            cal(C + 1, 2) = arrivalTime;
-            patientCounter = patientCounter + 1;
+    end
+    doctorsWorkloadPercentage = zeros(C, 1);
+    
+    %==================== VYSTUP 2 ====================
+    for i = 1:C
+        percentage = (doctorsWorkload(i) / simTime) * 100;
+        if (percentage > 100)
+            percentage = 100;
         end
+        doctorsWorkloadPercentage(i) = percentage;
+    end
+    
+    %==================== VYSTUP 3 ====================
+
+    totalPatients = 0;
+    for i = 1:C
+        totalPatients = totalPatients + numberOfPatients(i);
+    end
+    
+    numberOfPatients(1) = totalPatients;
+    
+    %priemerna cakacia doba pacienta pacientov
+    averageWaitingTimes = zeros(C, 1);
+    for i = 1:C
+        averageWaitingTimes(i) = patientWaitingTimes(i) / numberOfPatients(i);
+    end
+
+    for i = 1:C
+        sumsOfDepartmentDoctorsWorkloadPercentage(i) = sumsOfDepartmentDoctorsWorkloadPercentage(i) + doctorsWorkloadPercentage(i);
+        sumsOfDepartmentAverageWaitingTimes(i) = sumsOfDepartmentAverageWaitingTimes(i) + averageWaitingTimes(i);
     end
 end
 
-doctorsWorkloadPercentage = zeros(C, 1);
+avgDepartmentDoctorsWorkloadPercentage = zeros(C, 1);
+avgDepartmentWaitingTimes = zeros(C, 1);
 
-% ---------------- vystup 2
-for i = 1:length(doctorsWorkloadPercentage)
-    percentage = (doctorsWorkload(i) / simTime) * 100;
-    if (percentage > 100)
-        percentage = 100;
-    end
-    doctorsWorkloadPercentage(i) = percentage;
-end
-% ----------------
-
-% ---------------- vystup 3
-%celkovy pocet ludi v systeme
-totalPatients = 0;
-for i = 1:length(numberOfPatients)
-    totalPatients = totalPatients + numberOfPatients(i);
+for i = 1:C
+    avgDepartmentDoctorsWorkloadPercentage(i) = sumsOfDepartmentDoctorsWorkloadPercentage(i) / numberOfReplications;
+    avgDepartmentWaitingTimes(i) = sumsOfDepartmentAverageWaitingTimes(i) / numberOfReplications;
 end
 
-numberOfPatients(1) = totalPatients;
+%==================== VYSTUP 1 ====================
+plot(currentTimeCentral, currentCountCentral);
+xlabel('Cas') 
+ylabel('Pocet pacientov v rade') 
+title('Graf zavislosti poctu pacientov v centralQueue na case') 
+figure
 
-%priemerna cakacia doba pacienta pacientov
-averageWaitingTimes = zeros(C, 1);
-for i = 1:length(averageWaitingTimes)
-    averageWaitingTimes(i) = patientWaitingTimes(i) / numberOfPatients(i);
-end
-
-% ---------------- 
+plot(currentTimeDentist, currentCountDentist);
+xlabel('Cas') 
+ylabel('Pocet pacientov v rade') 
+title('Graf zavislosti poctu pacientov v dentistQueue na case') 
+figure
+    
+plot(currentTimeOrthopedist, currentCountOrthopedist);
+xlabel('Cas') 
+ylabel('Pocet pacientov v rade') 
+title('Graf zavislosti poctu pacientov v orthopedistQueue na case') 
+figure
+    
+plot(currentTimeSurgeon, currentCountSurgeon);
+xlabel('Cas') 
+ylabel('Pocet pacientov v rade') 
+title('Graf zavislosti poctu pacientov v surgeonQueue na case') 
+    
+%==================== FUNKCIE ====================
 
 %funckia pre zistenie ci nejaky pacient caka v rade
 function [newQueue, newCal, waitingTime, newDoctorsWorkload] = processPatientFromQueue(queue, cal, simTime, index, doctorsWorkload)
@@ -160,8 +215,9 @@ function [newQueue, newCal, waitingTime, newDoctorsWorkload] = processPatientFro
      if (length(queue) > 0)
          waitingTime = simTime - queue(1);
          cal(index,1) = 1;
-         cal(index,2) = simTime + getExaminationTime(index);
-         doctorsWorkload(index) = doctorsWorkload(index) + getExaminationTime(index);
+         examinationTime = getExaminationTime(index);
+         cal(index,2) = simTime + examinationTime;
+         doctorsWorkload(index) = doctorsWorkload(index) + examinationTime;
          queue(1) = [];
       else
          %ak je rad prazdny, uvolnime server
@@ -223,4 +279,3 @@ function [min, index] = getMinTime(cal)
     end
     min = x;
 end
-
