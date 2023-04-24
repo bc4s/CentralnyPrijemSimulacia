@@ -185,28 +185,32 @@ end
 
 %==================== VYSTUP 1 ====================
 plot(currentTimeCentral, currentCountCentral);
-xlabel('Cas') 
+xlabel('Cas v minutach') 
 ylabel('Pocet pacientov v rade') 
 title('Graf zavislosti poctu pacientov v centralQueue na case') 
-figure
+grid on
 
+figure
 plot(currentTimeDentist, currentCountDentist);
-xlabel('Cas') 
+xlabel('Cas v minutach') 
 ylabel('Pocet pacientov v rade') 
 title('Graf zavislosti poctu pacientov v dentistQueue na case') 
-figure
-    
+grid on
+
+figure    
 plot(currentTimeOrthopedist, currentCountOrthopedist);
-xlabel('Cas') 
+xlabel('Cas v minutach') 
 ylabel('Pocet pacientov v rade') 
 title('Graf zavislosti poctu pacientov v orthopedistQueue na case') 
-figure
-    
+grid on
+
+figure    
 plot(currentTimeSurgeon, currentCountSurgeon);
-xlabel('Cas') 
+xlabel('Cas v minutach') 
 ylabel('Pocet pacientov v rade') 
 title('Graf zavislosti poctu pacientov v surgeonQueue na case') 
-    
+grid on
+
 %==================== FUNKCIE ====================
 
 %funckia pre zistenie ci nejaky pacient caka v rade
